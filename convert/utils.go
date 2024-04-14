@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/xmdhs/clash2singbox/model/clash"
 	"github.com/xmdhs/clash2singbox/model/singbox"
@@ -62,8 +63,8 @@ func getTags(s []singbox.SingBoxOut) []string {
 	})
 }
 
-func Patch(b []byte, s []singbox.SingBoxOut, include, exclude string, extOut []interface{}, extags ...string) ([]byte, error) {
-	d, err := PatchMap(b, s, include, exclude, extOut, extags, true)
+func Patch(b []byte, s []singbox.SingBoxOut, include, exclude string, group string, extOut []interface{}, extags ...string) ([]byte, error) {
+	d, err := PatchMap(b, s, include, exclude, group, extOut, extags, true)
 	if err != nil {
 		return nil, fmt.Errorf("Patch: %w", err)
 	}
@@ -89,6 +90,7 @@ func PatchMap(
 	tpl []byte,
 	s []singbox.SingBoxOut,
 	include, exclude string,
+	group string,
 	extOut []interface{},
 	extags []string,
 	urltestOut bool,
@@ -116,19 +118,46 @@ func PatchMap(
 		}
 	}
 
+	var sSelect, sUrltest []singbox.SingBoxOut
+
 	if urltestOut {
-		s = append([]singbox.SingBoxOut{{
+		sSelect = append(sSelect, singbox.SingBoxOut{
 			Type:      "selector",
 			Tag:       "select",
 			Outbounds: append([]string{"urltest"}, tags...),
 			Default:   "urltest",
-		}}, s...)
-		s = append(s, singbox.SingBoxOut{
+		})
+		sUrltest = append(sUrltest, singbox.SingBoxOut{
 			Type:      "urltest",
 			Tag:       "urltest",
 			Outbounds: ftags,
 		})
 	}
+
+	if group != "" {
+		groups := strings.Split(group, ",")
+		for _, g := range groups {
+
+			n, m := GroupFilter(g, ftags)
+			if n == "" || len(m) == 0 {
+				continue
+			}
+
+			sSelect = append(sSelect, singbox.SingBoxOut{
+				Type:      "selector",
+				Tag:       n,
+				Outbounds: append([]string{fmt.Sprintf("%s-urltest", n)}, m...),
+				Default:   fmt.Sprintf("%s-urltest", n),
+			})
+			sUrltest = append(sUrltest, singbox.SingBoxOut{
+				Type:      "urltest",
+				Tag:       fmt.Sprintf("%s-urltest", n),
+				Outbounds: m,
+			})
+		}
+	}
+
+	s = append(append(sSelect, s...), sUrltest...)
 
 	s = append(s, singbox.SingBoxOut{
 		Type: "direct",
@@ -152,4 +181,26 @@ func PatchMap(
 	d["outbounds"] = anyList
 
 	return d, nil
+}
+
+func GroupFilter(g string, tags []string) (GroupName string, GroupMember []string) {
+
+	gFilter := strings.Split(g, ":")
+	if len(gFilter) != 2 {
+		fmt.Printf("错误的组过滤格式输入: %s\n", g)
+		return
+	}
+
+	f, err := regexp.Compile(gFilter[1])
+	if err != nil {
+		fmt.Printf("错误的过滤正则表达式: %s\n", gFilter[1])
+		return
+	}
+
+	for _, t := range tags {
+		if f.MatchString(t) {
+			GroupMember = append(GroupMember, t)
+		}
+	}
+	return gFilter[0], GroupMember
 }

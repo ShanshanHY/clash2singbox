@@ -1,6 +1,16 @@
 # clash2singbox
 用于将 clash 或者 Clash.Meta 配置文件，以及订阅链接转换为 sing-box 格式的配置文件。
 
+## 自用添加功能
+
+添加额外分组功能，支持正则表达式过滤节点，并添加分组`Select`与`Urltest`
+
+用于配合`rule-set`实现指定应用或域名使用指定节点
+
+### 使用方法
+
+`./clash2singbox -group [分组名称1]:[正则表达式],[分组名称2]:[正则表达式]`
+
 ## 用法
 `./clash2singbox -i config.yaml` 或者 `./clash2singbox -url <订阅链接>` 。
 
@@ -24,4 +34,4 @@
 - hysteria2
 - tuic5
 ## 网页版本
-https://github.com/xmdhs/clash2sfa
+~~https://github.com/xmdhs/clash2sfa~~ 本项目仅 Fork 了 Go 版本，所以没有网页（

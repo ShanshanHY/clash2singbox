@@ -24,6 +24,7 @@ var (
 	exclude  string
 	insecure bool
 	ignore   bool
+	group    string
 )
 
 //go:embed config.json.template
@@ -37,6 +38,7 @@ func init() {
 	flag.StringVar(&exclude, "exclude", "", "urltest 排除的节点")
 	flag.BoolVar(&insecure, "insecure", false, "所有节点不验证证书")
 	flag.BoolVar(&ignore, "ignore", true, "忽略无法转换的节点")
+	flag.StringVar(&group, "group", "", "额外分组 用法: [分组名称1]:[正则表达式],[分组名称2]:[正则表达式]")
 	flag.Parse()
 }
 
@@ -80,10 +82,13 @@ func main() {
 		}
 	}
 
-	outb, err = convert.Patch(outb, s, include, exclude, singList, tags...)
+	outb, err = convert.Patch(outb, s, include, exclude, group, singList, tags...)
 	if err != nil {
 		panic(err)
 	}
 
-	os.WriteFile(outPath, outb, 0644)
+	err = os.WriteFile(outPath, outb, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
