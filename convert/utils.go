@@ -138,7 +138,7 @@ func PatchMap(
 		groups := strings.Split(group, ",")
 		for _, g := range groups {
 
-			n, m := GroupFilter(g, ftags)
+			n, m := GroupFilter(g, tags)
 			if n == "" || len(m) == 0 {
 				continue
 			}
